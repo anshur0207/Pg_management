@@ -4,5 +4,6 @@ out/
 build/
 .env*
 !.env.example
+supabase/.temp/
 .DS_Store
 *.tsbuildinfo

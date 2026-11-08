@@ -1,5 +1,11 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
+import type { User } from "@supabase/supabase-js";
 import { ArrowDownRight, ArrowRight, ArrowUpRight, BedDouble, Building2, Check, ChevronRight, CircleCheck, ShieldCheck, Sparkles } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { isSessionExpired, SESSION_COOKIE } from "@/lib/supabase/session";
+import { PublicMarketplaceSection } from "@/components/marketplace/public-marketplace-section";
 
 const highlights = [
   { icon: Building2, title: "Every property, one view", text: "Bring rooms, beds, people, and day-to-day operations into one clear workspace." },
@@ -7,22 +13,45 @@ const highlights = [
   { icon: ShieldCheck, title: "Private by design", text: "Built for separate owner accounts, with secure access controls planned from day one." },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const cookieStore = await cookies();
+  let user: User | null = null;
+  let userIsStudent = false;
+
+  if (!isSessionExpired(cookieStore.get(SESSION_COOKIE)?.value) && isSupabaseConfigured()) {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+    if (user) {
+      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+      userIsStudent = profile?.role === "STUDENT";
+    }
+  }
+
+  const dashboardHref = userIsStudent ? "/student/dashboard" : "/dashboard";
+  const fullName = user?.user_metadata?.full_name;
+  const metadataName = user?.user_metadata?.name;
+  const userName = (typeof fullName === "string" && fullName.trim()) || (typeof metadataName === "string" && metadataName.trim()) || user?.email?.split("@")[0] || "Account";
+
   return (
     <main className="min-h-screen overflow-hidden bg-white">
       <header className="mx-auto flex max-w-[1320px] items-center justify-between px-6 py-5 lg:px-10">
-        <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight" aria-label="PG Manager home">
+        <Link href={user ? dashboardHref : "/"} className="flex items-center gap-2.5 font-semibold tracking-tight" aria-label={user ? "Open PG Manager dashboard" : "PG Manager home"}>
           <span className="grid size-9 place-items-center rounded-xl bg-[#167354] text-white"><Building2 size={19} strokeWidth={2.2} /></span>
           <span className="text-[17px]">pg<span className="text-[#167354]">manager</span></span>
         </Link>
         <nav className="hidden items-center gap-8 text-sm text-[#526058] md:flex" aria-label="Main navigation">
+          <a className="transition hover:text-[#167354]" href="#pg-listings">Find a PG</a>
           <a className="transition hover:text-[#167354]" href="#platform">Platform</a>
           <a className="transition hover:text-[#167354]" href="#how-it-works">How it works</a>
           <a className="transition hover:text-[#167354]" href="#security">Security</a>
         </nav>
         <div className="flex items-center gap-2.5">
-          <Link href="/login" className="hidden rounded-lg px-4 py-2.5 text-sm font-medium text-[#425149] transition hover:bg-[#f4f7f5] sm:inline-flex">Log in</Link>
-          <Link href="/register" className="inline-flex items-center gap-2 rounded-lg bg-[#167354] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#105a41]">Get started <ArrowRight size={15} /></Link>
+          {user ? <Link href={dashboardHref} className="inline-flex items-center gap-2 rounded-lg bg-[#167354] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#105a41]">{userName}<ArrowRight size={15} /></Link> : <>
+            <Link href="/student/login" className="hidden rounded-lg px-3 py-2.5 text-sm font-medium text-[#425149] transition hover:bg-[#f4f7f5] sm:inline-flex">Student portal</Link>
+            <Link href="/login" className="hidden rounded-lg px-4 py-2.5 text-sm font-medium text-[#425149] transition hover:bg-[#f4f7f5] sm:inline-flex">Log in</Link>
+            <Link href="/register" className="inline-flex items-center gap-2 rounded-lg bg-[#167354] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#105a41]">Get started <ArrowRight size={15} /></Link>
+          </>}
         </div>
       </header>
 
@@ -32,9 +61,12 @@ export default function Home() {
           <h1 className="max-w-[660px] text-[clamp(3rem,6.6vw,5.7rem)] font-semibold leading-[1.02] tracking-[-.065em] text-[#17241f]">Make room for <span className="text-[#167354]">better</span> living.</h1>
           <p className="mt-7 max-w-[510px] text-lg leading-8 text-[#64736a]">The calm, clear workspace for managing paying guest homes, hostels, and co-living spaces — all in one place.</p>
           <div className="mt-9 flex flex-wrap items-center gap-3">
-            <Link href="/register" className="inline-flex items-center gap-2 rounded-lg bg-[#167354] px-5 py-3.5 text-sm font-medium text-white shadow-[0_8px_24px_rgba(22,115,84,.18)] transition hover:-translate-y-0.5 hover:bg-[#105a41]">Create your workspace <ArrowRight size={16} /></Link>
-            <Link href="/login" className="rounded-lg border border-[#dce4de] px-5 py-3.5 text-sm font-medium text-[#425149] transition hover:bg-[#f7faf7]">Sign in</Link>
+            {user ? <Link href={dashboardHref} className="inline-flex items-center gap-2 rounded-lg bg-[#167354] px-5 py-3.5 text-sm font-medium text-white shadow-[0_8px_24px_rgba(22,115,84,.18)] transition hover:-translate-y-0.5 hover:bg-[#105a41]">Open your dashboard <ArrowRight size={16} /></Link> : <>
+              <Link href="/register" className="inline-flex items-center gap-2 rounded-lg bg-[#167354] px-5 py-3.5 text-sm font-medium text-white shadow-[0_8px_24px_rgba(22,115,84,.18)] transition hover:-translate-y-0.5 hover:bg-[#105a41]">Create your workspace <ArrowRight size={16} /></Link>
+              <Link href="/login" className="rounded-lg border border-[#dce4de] px-5 py-3.5 text-sm font-medium text-[#425149] transition hover:bg-[#f7faf7]">Sign in</Link>
+            </>}
           </div>
+          {!user && <p className="mt-4 text-sm text-[#718078]">Already staying at a PG? <Link href="/student/login" className="font-medium text-[#167354] hover:underline">Student sign in</Link></p>}
           <div className="mt-8 flex items-center gap-2 text-xs text-[#77837c]"><CircleCheck size={15} className="text-[#167354]" /> Built for independent PG owners and growing teams</div>
         </div>
 
@@ -59,6 +91,8 @@ export default function Home() {
           <div className="absolute -left-7 top-[42%] hidden items-center gap-3 rounded-xl border border-[#e8ede8] bg-white p-3 shadow-[0_12px_34px_-18px_rgba(0,0,0,.24)] sm:flex"><span className="grid size-9 place-items-center rounded-lg bg-[#eff7f1] text-[#167354]"><ArrowUpRight size={17} /></span><div><p className="text-xs font-semibold text-[#25342c]">Less admin, more care</p><p className="mt-0.5 text-[10px] text-[#7b8980]">One thoughtful system</p></div></div>
         </div>
       </section>
+
+      <PublicMarketplaceSection />
 
       <section id="platform" className="border-y border-[#edf0ed] bg-[#fbfcfb]">
         <div className="mx-auto max-w-[1320px] px-6 py-16 lg:px-10 lg:py-20">

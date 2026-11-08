@@ -1,16 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { getSupabaseConfig } from "@/lib/supabase/config";
 
 export async function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !key) {
-    throw new Error("Supabase is not configured. Add the project URL and anonymous key to .env.local.");
-  }
-
+  const { url, key } = getSupabaseConfig();
   const cookieStore = await cookies();
   return createServerClient(url, key, {
+    cookieOptions: { maxAge: undefined },
     cookies: {
       getAll() {
         return cookieStore.getAll();
