@@ -4,15 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, LoaderCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { clearRememberMePreference, clearSessionStartCookie } from "@/lib/supabase/session";
 
-export function SignOutButton() {
+export function SignOutButton({ redirectTo = "/login" }: { redirectTo?: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
   async function signOut() {
     setBusy(true);
     const { error } = await createClient().auth.signOut();
-    if (!error) router.replace("/login");
+    if (!error) {
+      clearSessionStartCookie();
+      clearRememberMePreference();
+      router.replace(redirectTo);
+    }
     setBusy(false);
   }
 

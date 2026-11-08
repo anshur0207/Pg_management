@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { SESSION_COOKIE } from "@/lib/supabase/session";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -11,7 +12,15 @@ export async function GET(request: NextRequest) {
     try {
       const supabase = await createClient();
       const { error } = await supabase.auth.exchangeCodeForSession(code);
-      if (!error) return NextResponse.redirect(new URL(nextPath, requestUrl.origin));
+      if (!error) {
+        const response = NextResponse.redirect(new URL(nextPath, requestUrl.origin));
+        response.cookies.set(SESSION_COOKIE, String(Date.now()), {
+          path: "/",
+          sameSite: "lax",
+          secure: requestUrl.protocol === "https:",
+        });
+        return response;
+      }
     } catch {
       // Redirect to a safe page below; never expose server auth details in the response URL.
     }

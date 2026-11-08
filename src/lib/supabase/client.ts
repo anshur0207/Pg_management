@@ -1,13 +1,20 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { getSupabaseConfig } from "@/lib/supabase/config";
+import { getRememberMePreference, SESSION_DURATION_SECONDS } from "@/lib/supabase/session";
+
+let cachedClient: ReturnType<typeof createBrowserClient> | undefined;
+let cachedRememberMe: boolean | undefined;
 
 export function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const rememberMe = getRememberMePreference();
+  if (cachedClient && cachedRememberMe === rememberMe) return cachedClient;
 
-  if (!url || !key) {
-    throw new Error("Supabase is not configured. Add the project URL and anonymous key to .env.local.");
-  }
-
-  return createBrowserClient(url, key);
+  const { url, key } = getSupabaseConfig();
+  cachedClient = createBrowserClient(url, key, {
+    isSingleton: false,
+    cookieOptions: { maxAge: rememberMe ? SESSION_DURATION_SECONDS : undefined },
+  });
+  cachedRememberMe = rememberMe;
+  return cachedClient;
 }
 

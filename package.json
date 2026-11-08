@@ -11,10 +11,11 @@
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@hookform/resolvers": "latest",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
-    "@hookform/resolvers": "latest",
     "clsx": "latest",
+    "jspdf": "^4.2.1",
     "lucide-react": "latest",
     "next": "latest",
     "next-themes": "latest",
@@ -34,6 +35,7 @@
     "eslint": "latest",
     "eslint-config-next": "latest",
     "prettier": "latest",
+    "supabase": "^3.0.0",
     "tailwindcss": "latest",
     "typescript": "latest"
   }
